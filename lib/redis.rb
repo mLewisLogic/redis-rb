@@ -212,11 +212,23 @@ class Redis
       reply = @client.call [:hgetall, key]
 
       if reply.kind_of?(Array)
-        Hash[*reply]
+        # This is being deprecated because Ruby expands splats on the stack, blowing up production servers with large replies
+        #Hash[*reply]
+        _hashify.call(reply)
       else
         reply
       end
     end
+  end
+
+  def _hashify
+    lambda { |array|
+      hash = Hash.new
+      array.each_slice(2) do |field, value|
+        hash[field] = value
+      end
+      hash
+    }
   end
 
   # Get the value of a hash field.
